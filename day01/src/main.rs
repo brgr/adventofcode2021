@@ -1,4 +1,4 @@
-use inputs::INPUT_DAY_01;
+use inputs;
 
 fn count_increases(numbers: &Vec<u32>) -> u32 {
     let mut increased = 0;
@@ -24,13 +24,7 @@ fn count_increases_measurement_windows(numbers: &Vec<u32>) -> u32 {
 }
 
 fn main() {
-    println!("Hello, world!");
-
-    println!("{:?}", INPUT_DAY_01);
-
-    let numbers: Vec<u32> = INPUT_DAY_01.split('\n')
-        .flat_map(|i| i.parse::<u32>())
-        .collect();
+    let numbers: Vec<u32> = inputs::get_input_as_numbers_unsigned(1);
 
     println!("{}", count_increases(&numbers));
     println!("{}", count_increases_measurement_windows(&numbers));

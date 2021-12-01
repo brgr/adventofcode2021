@@ -1,8 +1,5 @@
 use std::fs;
 
-pub const INPUT_DAY_01: &str = include_str!("../../resources/inputs/day01");
-
-
 pub fn get_input_as_numbers(day: u8) -> Vec<i32> {
     get_input_split(day).iter()
         .map(|i| i.parse::<i32>().expect("Error when parsing a number in the input"))
@@ -23,18 +20,8 @@ pub fn get_input_split(day: u8) -> Vec<String> {
         .collect()
 }
 
+/** Note: This only works when run in the main files of the days, *not* when run here in lib.rs */
 pub fn get_input_whole(day: u8) -> String {
-    fs::read_to_string(format!("../resources/inputs/day{:0>2}", day))
+    fs::read_to_string(format!("resources/inputs/day{:0>2}", day))
         .expect("Could not find input file")
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::get_input_as_numbers;
-
-    #[test]
-    fn it_works() {
-        let vec = get_input_as_numbers(1);
-        assert_eq!(2000, vec.len());
-    }
 }
