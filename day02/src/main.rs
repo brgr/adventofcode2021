@@ -45,11 +45,12 @@ impl FromStr for Movement {
 #[derive(Debug)]
 struct Position {
     x: i32,
-    y: i32
+    y: i32,
+    aim: i32
 }
 
 fn solve_part1(ms: Vec<Movement>) -> Position {
-    let mut pos = Position { x: 0, y: 0 };
+    let mut pos = Position { x: 0, y: 0, aim: 0};
 
     for m in ms {
         match m.direction {
@@ -62,13 +63,31 @@ fn solve_part1(ms: Vec<Movement>) -> Position {
     pos
 }
 
+fn solve_part2(ms: Vec<Movement>) -> Position {
+    let mut pos = Position { x: 0, y: 0, aim: 0};
+
+    for m in ms {
+        match m.direction {
+            FORWARD => {
+                pos.x += (m.steps as i32);
+                pos.y += (pos.aim * m.steps as i32);
+            }
+            DOWN => pos.aim += (m.steps as i32),
+            UP => pos.aim -= (m.steps as i32)
+        }
+    }
+
+    pos
+}
+
+
 fn main() {
     let inputs: Vec<Movement> = inputs::get_input_split(2).iter()
         .map(|i| Movement::from_str(i).unwrap())
         .collect();
 
     println!("{:?}", inputs);
-    let position = solve_part1(inputs);
+    let position = solve_part2(inputs);
     println!("{:?}", position);
 
     println!("{}", (position.x * position.y));
