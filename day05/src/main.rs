@@ -33,18 +33,18 @@ impl FromStr for Line {
 
 impl Line {
     pub fn x_range(&self) -> Vec<u32> {
-        if self.from.0 <= self.to.0 {
-            return (self.from.0..=self.to.0).collect();
+        return if self.from.0 <= self.to.0 {
+            (self.from.0..=self.to.0).collect()
         } else {
-            return (self.to.0..=self.from.0).rev().collect();
+            (self.to.0..=self.from.0).rev().collect()
         }
     }
 
     pub fn y_range(&self) -> Vec<u32> {
-        if self.from.1 <= self.to.1 {
-            return (self.from.1..=self.to.1).collect();
+        return if self.from.1 <= self.to.1 {
+            (self.from.1..=self.to.1).collect()
         } else {
-            return (self.to.1..=self.from.1).rev().collect();
+            (self.to.1..=self.from.1).rev().collect()
         }
     }
 
@@ -56,20 +56,33 @@ impl Line {
         self.from.0 == self.to.0
     }
 
-    /** Note: Currently only works with horizontal / vertical */
     pub fn get_points(&self) -> Vec<(u32, u32)> {
-        if self.is_horizontal() {
-            return self.x_range().iter()
+        return if self.is_horizontal() {
+            self.x_range().iter()
                 .map(|x| (*x, self.from.1))
-                .collect();
+                .collect()
         } else if self.is_vertical() {
-            return self.y_range().iter()
+            self.y_range().iter()
                 .map(|y| (self.from.0, *y))
-                .collect();
-        }
+                .collect()
+        } else { // diagonal
+            let y_range = self.y_range();
+            let x_range = self.x_range();
 
-        panic!("Only implemented for vertical and horizontal!")
+            let mut v = Vec::new();
+            for i in 0..y_range.len() {
+                v.push((x_range[i], y_range[i]));
+            }
+
+            v
+        }
     }
+}
+
+#[test]
+fn test_diagonal() {
+    let line = Line { from: (7, 9), to: (9, 7) };
+    println!("{:?}", line.get_points());
 }
 
 type Board = HashMap<(u32, u32), u32>;
@@ -91,26 +104,16 @@ impl CountBoard for Board {
 }
 
 fn part1(input: Vec<Line>) {
-    let considered_lines: Vec<&Line> = input.iter()
-        .filter(|l| l.is_horizontal() || l.is_vertical())
-        .collect();
-
-    println!("{:?}", considered_lines);
+    // let considered_lines: Vec<&Line> = input.iter()
+    //     .filter(|l| l.is_horizontal() || l.is_vertical())
+    //     .collect();
+    //
+    // println!("{:?}", considered_lines);
 
     let mut board = Board::new();
-    considered_lines.iter()
+    input.iter()
         .for_each(|line| line.get_points().into_iter()
             .for_each(|point| board.add_to_board(point)));
-
-    // let max = 1000000;
-    // let all_points: Vec<(u32, u32)> = (0u32..=max)
-    //     .map(|x|
-    //         (0u32..=max).map(|y| (x, y))
-    //             .collect::<Vec<(u32, u32)>>())
-    //     .flatten()
-    //     .collect();
-
-    // println!("{:?}", board.iter().collect());
 
     let intersected_at = board.values()
         // .map(|point| board.get_count(point))
