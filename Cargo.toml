@@ -1,8 +1,11 @@
-#[package]
-#name = "adventofcode2021"
-#version = "0.1.0"
-#authors = ["Dominik Berger <dominik.berger@protonmail.com>"]
-#edition = "2018"
+[package]
+name = "adventofcode2021"
+version = "0.1.0"
+authors = ["Dominik Berger <dominik.berger@protonmail.com>"]
+edition = "2018"
+
+[dependencies]
+itertools = "0.10.1"
 
 [workspace]
 members = ["inputs", "day*"]
