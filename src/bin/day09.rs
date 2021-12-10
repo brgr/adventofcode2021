@@ -1,6 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use std::string::ParseError;
+
 use itertools::Itertools;
 
 const E1: &str = "2199943210\n3987894921\n9856789892\n8767896789\n9899965678";
@@ -50,7 +51,53 @@ impl Maze {
             .filter(|neighbor| neighbor.1 == min_value_neighbor && neighbor.1 < this)
             .collect()
     }
+
+    fn basin(&self, x: usize, y: usize) -> Basin {
+        let mut basin = HashMap::new();
+
+        basin.insert((x, y), self.get_position(x, y));
+
+        let mut search_from = self.get_neighbors_for_basin(x, y);
+
+        while !&search_from.is_empty() {
+            let map = search_from.clone();
+            let (k, v) = map.iter().nth(0).unwrap().clone();
+            basin.insert(*k, *v);
+
+            search_from.remove(&k);
+            let yet_to_search: Basin = self.get_neighbors_for_basin(k.0, k.1).into_iter()
+                .filter(|(pos, v)| !basin.contains_key(pos))
+                .collect();
+
+            search_from.extend(yet_to_search.iter());
+        }
+
+        basin
+    }
+
+    fn get_neighbors_for_basin(&self, x: usize, y: usize) -> Basin {
+        let mut neighbors = self.all_neighbors(x, y);
+
+        // println!("Neighbors for basin for: {:?}", (x, y));
+        // println!(" --> Neighbors: {:?}", neighbors);
+        if x < self.width() - 1 && self.get_position(x + 1, y) == 9 {
+            neighbors = neighbors.into_iter().filter(|(pos, _)| pos.0 != x + 1).collect();
+        }
+        if x > 0 && self.get_position(x - 1, y) == 9 {
+            neighbors = neighbors.into_iter().filter(|(pos, _)| pos.0 != x - 1).collect();
+        }
+        if y < self.height() - 1 && self.get_position(x, y + 1) == 9 {
+            neighbors = neighbors.into_iter().filter(|(pos, _)| pos.1 != y + 1).collect();
+        }
+        if y > 0 && self.get_position(x, y - 1) == 9 {
+            neighbors = neighbors.into_iter().filter(|(pos, _)| pos.1 != y - 1).collect();
+        }
+
+        neighbors.into_iter().filter(|(_, v)| *v != 9 ).collect()
+    }
 }
+
+type Basin = HashMap<(usize, usize), u8>;
 
 impl FromStr for Maze {
     type Err = ParseError;
@@ -87,6 +134,39 @@ fn part1() {
     println!("{:?}", final_result);
 }
 
+fn part2() {
+    let result: Maze = INPUT.parse().unwrap();
+    println!("{:?}", result);
+
+    let mut smallest_points: HashMap<(usize, usize), u8> = HashMap::new();
+
+    for x in 0..result.width() {
+        for y in 0..result.height() {
+            if result.smallest_smaller_neighbors(x, y).is_empty() {
+                smallest_points.insert((x, y), result.get_position(x, y));
+            }
+        }
+    }
+
+    // let smallest_points = smallest_points.values();
+    println!("{:?}", smallest_points);
+
+    // let p1 = smallest_points.iter().nth(0).unwrap();
+    // println!("{:?}", p1);
+    // println!("{:?}", result.basin(p1.0.0, p1.0.1));
+    // println!("{:?}", result.get_neighbors_for_basin(7, 3));
+
+    let basins: Vec<Basin> = smallest_points.iter()
+        .map(|(pos, v)| result.basin(pos.0, pos.1))
+        .collect();
+
+    println!("{:?}", basins);
+
+    let basin_sizes: Vec<usize> = basins.iter().map(|b| b.iter().count()).collect();
+
+    println!("{:?}", basin_sizes.iter().sorted().collect::<Vec<&usize>>());
+}
+
 fn main() {
-    part1();
+    part2();
 }
