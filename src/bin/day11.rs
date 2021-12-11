@@ -91,16 +91,16 @@ fn flash_from(maze: &mut Vec<Vec<u8>>, (x, y): (usize, usize), yet_to_look_at: &
             let first = yet_to_look_at.remove(0);
             flash_from(maze, first, yet_to_look_at, count_flashes)
         }
-    }
+    };
 }
 
 fn neighbors(maze: &mut Vec<Vec<u8>>, x: usize, y: usize) -> Vec<(usize, usize)> {
     let mut neighbors = Vec::new();
 
     let from_x = if x > 0 { x - 1 } else { x };
-    let to_x = if x < maze[0].len() - 1 { x + 1 } else { maze[0].len()-1 };
+    let to_x = if x < maze[0].len() - 1 { x + 1 } else { maze[0].len() - 1 };
     let from_y = if y > 0 { y - 1 } else { y };
-    let to_y = if y < maze.len() - 1 { y + 1 } else { maze.len()-1 };
+    let to_y = if y < maze.len() - 1 { y + 1 } else { maze.len() - 1 };
 
     for xi in from_x..=to_x {
         for yi in from_y..=to_y {
@@ -119,11 +119,9 @@ fn reset11(maze: &mut Vec<Vec<u8>>) {
             if *o == 11 {
                 *o = 0;
             }
-
         }
     }
 }
-
 
 
 fn part1() {
@@ -156,8 +154,34 @@ fn step(mut maze: &mut Vec<Vec<u8>>) -> u32 {
 }
 
 
-fn part2() {}
+fn part2() {
+    let mut maze: Vec<Vec<u8>> = INPUT.lines()
+        .map(|l| l.chars()
+            .map(|c| c.to_digit(10).unwrap() as u8)
+            .collect())
+        .collect();
+
+    let mut nth_step = 0;
+    loop {
+        nth_step += 1;
+        step(&mut maze);
+
+        if is_all_zero(&maze) { break; }
+    }
+
+    println!("At step: {}", nth_step);
+}
+
+fn is_all_zero(maze: &Vec<Vec<u8>>) -> bool {
+    for row in maze {
+        for x in row {
+            if *x != 0 { return false; }
+        }
+    }
+
+    return true;
+}
 
 fn main() {
-    part1();
+    part2();
 }
