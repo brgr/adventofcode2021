@@ -7,6 +7,7 @@ edition = "2018"
 [dependencies]
 itertools = "0.10.1"
 phf = { version = "0.10.0", features = ["macros"] }
+tailcall = "0.1.6"
 
 [workspace]
 members = ["inputs", "day*"]
