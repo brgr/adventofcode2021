@@ -25,38 +25,60 @@ fn part1() {
              to.chars().nth(0).unwrap()))
         .collect();
 
-    let mut current_polymer = template.chars().collect_vec();
+    let mut current_polymers: HashMap<(char, char), u64> = HashMap::new();
 
-    for i in 0..10 {
+    // initialize
+    for i in 1..template.len() {
+        let polymer = current_polymers
+            .entry((template.chars().nth(i-1).unwrap(), template.chars().nth(i).unwrap()))
+            .or_insert(0);
+        *polymer += 1;
+    }
+
+    let mut total_count: HashMap<char, u64> = HashMap::new();
+    for x in template.chars() {
+        let c_count = total_count.entry(x).or_insert(0);
+        *c_count += 1;
+    }
+
+    for i in 0..40 {
         println!("Step: {}", i);
-        let mut new_polymer = Vec::new();
-        new_polymer.push(*current_polymer.first().unwrap());
 
-        for j in 1..current_polymer.len() {
-            let after = current_polymer[j];
-            let before = new_polymer.last().unwrap();
-            let middle = get_middle(&reactions, before, &after);
+        let mut next_polymers: HashMap<(char, char), u64> = HashMap::new();
 
-            new_polymer.push(middle);
-            new_polymer.push(after);
+        for k in current_polymers.iter() {
+            let before = k.0.0;
+            let after = k.0.1;
+            let middle = get_middle(&reactions, &before, &after);
+
+            // add/increase two new ones
+            let new_entry_before = next_polymers.entry((before, middle)).or_insert(0);
+            *new_entry_before += *k.1;
+
+            let new_entry_after = next_polymers.entry((middle, after)).or_insert(0);
+            *new_entry_after += *k.1;
+
+            // increase count for middle, as that is new
+            let middle_count = total_count.entry(middle).or_insert(0);
+            *middle_count += *k.1;
         }
 
-        current_polymer = new_polymer;
+        current_polymers = next_polymers;
     }
 
-    println!("{:?}", current_polymer);
+    println!("{:?}", current_polymers);
 
 
-    let mut frequencies: HashMap<char, u32> = HashMap::new();
-    for x in current_polymer {
-        let count = frequencies.entry(x).or_insert(0);
-        *count += 1;
-    }
-
-    println!("{:?}", frequencies);
-
-    let max = frequencies.values().max().unwrap();
-    let min = frequencies.values().min().unwrap();
+    // let mut frequencies: HashMap<char, u64> = HashMap::new();
+    // for x in current_polymer {
+    //     let count = frequencies.entry(x).or_insert(0);
+    //     *count += 1;
+    // }
+    //
+    // println!("{:?}", frequencies);
+    //
+    let max = total_count.values().max().unwrap();
+    let min = total_count.values().min().unwrap();
 
     println!("{}", (max - min));
 }
