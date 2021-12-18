@@ -2,7 +2,7 @@ use std::borrow::BorrowMut;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::iter::FromIterator;
-use std::ptr::write;
+use std::ptr::{eq, write};
 use std::str::{Chars, FromStr};
 use std::string::ParseError;
 use std::thread::current;
@@ -11,7 +11,7 @@ use itertools::{fold, Itertools};
 use phf::phf_map;
 use tailcall::tailcall;
 
-const E1: &str = "D2FE28";
+const E1: &str = "C200B40A82";
 const E2: &str = "38006F45291200";
 const E3: &str = "EE00D40C823060";
 const E4: &str = "8A004A801A8002F478";
@@ -26,39 +26,80 @@ fn part1() {
         .join("");
     println!("input = {}", input);
 
-    decode_packet(input.as_str(), 0);
-
-    unsafe {
-        println!("{}", PACKET_VERSIONS);
-        // 821
-    }
+    println!("end result = {:?}", decode_packet(input.as_str(), 0));
+    // too low: 732543157
 }
 
-static mut PACKET_VERSIONS: i32 = 0;
 
-fn decode_packet(input: &str, start: usize) -> usize {
+fn decode_packet(input: &str, start: usize) -> (u64, usize) {
     let offset = start;
 
     let type_id = get_bits(input, offset + 3, 3);
 
-    let packet_version = get_bits(input, offset, 3);
-    let packet_version = i32::from_str_radix(packet_version, 2).unwrap();
-    println!("{}", packet_version);
-    unsafe {
-        PACKET_VERSIONS += packet_version;
-    }
-
-    // println!("first three bits: {}", packet_version);
-    // println!("second three bits: {}", type_id);
+    // let packet_version = get_bits(input, offset, 3);
 
     // decode data
     match type_id {
+        "000" => sum(input, offset + 6),
+        "001" => product(input, offset + 6),
+        "010" => minimum(input, offset + 6),
+        "011" => maximum(input, offset + 6),
         "100" => read_literal_value(input, offset + 6),
-        _ => read_operator_packet(input, offset + 6)
+        "101" => greater_than(input, offset + 6),
+        "110" => less_than(input, offset + 6),
+        "111" => equal_to(input, offset + 6),
+        _ => panic!()
     }
 }
 
-fn read_operator_packet(input: &str, start: usize) -> usize {
+fn equal_to(input: &str, start: usize) -> (u64, usize) {
+    let packets = read_operator_packet(input, start);
+
+    let value = if packets.0[0] == packets.0[1] { 1 } else { 0 };
+    (value, packets.1)
+}
+
+
+fn less_than(input: &str, start: usize) -> (u64, usize) {
+    let packets = read_operator_packet(input, start);
+
+    let value = if packets.0[0] < packets.0[1] { 1 } else { 0 };
+    (value, packets.1)
+}
+
+
+fn greater_than(input: &str, start: usize) -> (u64, usize) {
+    let packets = read_operator_packet(input, start);
+
+    let value = if packets.0[0] > packets.0[1] { 1 } else { 0 };
+    (value, packets.1)
+}
+
+fn maximum(input: &str, start: usize) -> (u64, usize) {
+    let (values, offset) = read_operator_packet(input, start);
+    let value = *values.iter().max().unwrap();
+    (value, offset)
+}
+
+fn minimum(input: &str, start: usize) -> (u64, usize) {
+    let (values, offset) = read_operator_packet(input, start);
+    let value = *values.iter().min().unwrap();
+    (value, offset)
+}
+
+fn product(input: &str, start: usize) -> (u64, usize) {
+    let (values, offset) = read_operator_packet(input, start);
+    let value = values.iter().product();
+    (value, offset)
+}
+
+fn sum(input: &str, start: usize) -> (u64, usize) {
+    let (values, offset) = read_operator_packet(input, start);
+    let value = values.iter().sum();
+    (value, offset)
+}
+
+fn read_operator_packet(input: &str, start: usize) -> (Vec<u64>, usize) {
     let length_type_id = get_bits(input, start, 1);
 
     match length_type_id {
@@ -66,34 +107,37 @@ fn read_operator_packet(input: &str, start: usize) -> usize {
             let number_of_sub_packets = get_bits(input, start + 1, 11);
             let mut offset = start + 12;
 
-            println!("number of sub packets: {}", number_of_sub_packets);
+            let mut values = Vec::new();
             for _ in 0..i32::from_str_radix(number_of_sub_packets, 2).unwrap() {
-                offset = decode_packet(input, offset);
+                let (value, new_offset) = decode_packet(input, offset);
+                offset = new_offset;
+                values.push(value);
             }
 
-            offset
+            (values, offset)
         }
         "0" => {
             let total_length_in_bits = usize::from_str_radix(get_bits(input, start + 1, 15), 2).unwrap();
             let mut offset = start + 16;
 
-            println!("offset: {} -- total length in bits: {} -- start: {}", (offset), total_length_in_bits, start);
+            let mut values = Vec::new();
             while offset != (total_length_in_bits + start + 16) {
-                // println!("--> offset: {}", offset);
-                offset = decode_packet(input, offset);
+                let (value, new_offset) = decode_packet(input, offset);
+                offset = new_offset;
+                values.push(value);
             }
 
-            offset
+            (values, offset)
         }
         _ => panic!()
     }
 }
 
-fn read_literal_value(input: &str, start: usize) -> usize {
+fn read_literal_value(input: &str, start: usize) -> (u64, usize) {
     let mut offset = start;
     let mut value = 0;
     loop {
-        let four_bits_of_number = usize::from_str_radix(get_bits(input, offset + 1, 4), 2).unwrap();
+        let four_bits_of_number = u64::from_str_radix(get_bits(input, offset + 1, 4), 2).unwrap();
         value = (value << 4) + four_bits_of_number;
 
         let prefix_bit = get_bits(input, offset, 1);
@@ -102,20 +146,11 @@ fn read_literal_value(input: &str, start: usize) -> usize {
         if prefix_bit == "0" { break; }
     }
 
-    println!("literal value = {} // offset = {}", value, offset);
-    offset
+    println!("{}", value);
+    (value, offset)
 }
 
 fn get_bits(bits: &str, start: usize, length: usize) -> &str {
-    // let mut bits_len = (bits as f64).log2().ceil() as u32;
-    // if bits_len % 4 != 0 {bits_len = bits_len + (4 - (bits_len % 4)) };
-    // println!("bits: {:#b} -- start: {} -- bits len: {}", bits, start, bits_len);
-    // let bits = (bits << start) & (2u64.pow(bits_len) - 1);
-    // println!("bits: {:#b}", bits);
-    //
-    // let one_bits_of_len = 2u64.pow(length) - 1;
-    //
-    // (bits & (one_bits_of_len << (bits_len - length))) >> (bits_len - length)
     &bits[start..start + length]
 }
 
