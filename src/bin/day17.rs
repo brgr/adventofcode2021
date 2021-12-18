@@ -25,18 +25,21 @@ fn part1() {
     let (from_x, to_x): (i32, i32) = xs.split("..").map(|n| n.parse().unwrap()).collect_tuple().unwrap();
     let (from_y, to_y): (i32, i32) = ys.split("..").map(|n| n.parse().unwrap()).collect_tuple().unwrap();
 
-    let mut max_y_found = 0;
+    let mut distint_velocities = 0;
 
-    for x_acceleration in 0..5_000 {
+    for x_acceleration in -1000..5_000 {
         println!("x acc = {}", x_acceleration);
-        for y_acceleration in 0..5_000 {
-            if let Some(max_y) = try_jump(x_acceleration, y_acceleration, (from_x, to_x), (from_y, to_y)) {
-                if max_y > max_y_found { max_y_found = max_y; }
+        for y_acceleration in -100..5_000 {
+            if let Some(_) = try_jump(x_acceleration, y_acceleration, (from_x, to_x), (from_y, to_y)) {
+                distint_velocities += 1;
             }
         }
     }
 
-    println!("{}", max_y_found);
+    println!("{}", distint_velocities);
+    // too low: 152
+
+    // 1919
 }
 
 fn try_jump(mut x_acc: i32, mut y_acc: i32, (from_x, to_x): (i32, i32), (from_y, to_y): (i32, i32)) -> Option<i32> {
@@ -52,7 +55,7 @@ fn try_jump(mut x_acc: i32, mut y_acc: i32, (from_x, to_x): (i32, i32), (from_y,
         x += x_acc;
         y += y_acc;
 
-        if x_acc != 0 { x_acc -= 1; }
+        if x_acc > 0 { x_acc -= 1; } else if x_acc < 0 { x_acc += 1; }
         y_acc -= 1;
     }
 
