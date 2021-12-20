@@ -43,11 +43,23 @@ fn part1() {
     let first_map = find_next_map(&input_map, &image_enhancement_algorithm, bounds);
     print_map(&first_map, bounds);
 
-    let bounds = (from_x + 1, from_y + 1, to_x - 1, to_y - 1);
+    let mut bounds = (from_x + 1, from_y + 1, to_x - 1, to_y - 1);
     let second_map = find_next_map(&first_map, &image_enhancement_algorithm, bounds);
     print_map(&second_map, bounds);
 
     println!("{}", second_map.len());
+
+    let mut newest_map = second_map;
+    for _ in 0..24 {
+        bounds = (bounds.0 - 3, bounds.1 - 3, bounds.2 + 3, bounds.3 + 3);
+        newest_map = find_next_map(&newest_map, &image_enhancement_algorithm, bounds);
+
+        bounds = (bounds.0 + 1, bounds.1 + 1, bounds.2 - 1, bounds.3 - 1);
+        newest_map = find_next_map(&newest_map, &image_enhancement_algorithm, bounds);
+
+        print_map(&newest_map, bounds);
+        println!("{}", newest_map.len());
+    }
 }
 
 fn print_map(map: &HashSet<(i32, i32)>, (from_x, from_y, to_x, to_y): (i32, i32, i32, i32)) {
@@ -90,7 +102,7 @@ fn is_light(map: &HashSet<(i32, i32)>, image_enhancement_algorithm: &Vec<bool>, 
     if map.contains(&(x - 1, y - 1)) { n = n + (1 << 8); }
 
     let result = *image_enhancement_algorithm.get(n).unwrap();
-    println!("(x, y) = ({}, {}) -- n = {:#b} - {} - {}", x, y, n, n, result);
+    // println!("(x, y) = ({}, {}) -- n = {:#b} - {} - {}", x, y, n, n, result);
 
     result
 }
