@@ -8,6 +8,7 @@ edition = "2018"
 itertools = "0.10.1"
 phf = { version = "0.10.0", features = ["macros"] }
 tailcall = "0.1.6"
+parse-display = "0.5.3"
 
 [workspace]
 members = ["inputs", "day*"]
