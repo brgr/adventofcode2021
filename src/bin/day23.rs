@@ -1,14 +1,16 @@
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Error, Formatter};
 use std::ptr::write;
 use std::str::FromStr;
 use std::thread::current;
 
 use itertools;
+use itertools::Itertools;
 use parse_display::Display;
 
 use crate::Amphipod::{A, B, C, D};
 
-#[derive(Debug, Copy, Clone, Display, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Display, Eq, PartialEq, Hash)]
 enum Amphipod { A, B, C, D }
 
 impl Amphipod {
@@ -22,6 +24,7 @@ impl Amphipod {
     }
 }
 
+#[derive(Copy, Clone, Hash, Eq, PartialEq)]
 struct Burrow {
     hallway: [Option<Amphipod>; 11],
     sideway_a: [Option<Amphipod>; 2],
@@ -174,7 +177,6 @@ impl Burrow {
         }
     }
 
-
     fn get_sideway_position(sideway: &Amphipod) -> usize {
         match sideway {
             A => 2,
@@ -195,6 +197,55 @@ impl Burrow {
         } else {
             ".".to_string()
         }
+    }
+
+    fn is_done(&self) -> bool {
+        self.get_sideway(&A) == &[Some(A), Some(A)] &&
+            self.get_sideway(&B) == &[Some(B), Some(B)] &&
+            self.get_sideway(&C) == &[Some(C), Some(C)] &&
+            self.get_sideway(&D) == &[Some(D), Some(D)]
+    }
+
+    fn find_all_next(&self, current_score: u32) -> Vec<(Burrow, u32)> {
+        let mut all_next = Vec::new();
+
+        // first all from the hallway
+        // (note that hallway first or sideways first shouldn't matter)
+
+        for i in 0..self.hallway.len() {
+            if self.hallway[i].is_some() {
+                let mut new_burrow = self.clone();
+                let result = new_burrow.move_into_sideway(i);
+                if let Ok(score) = result {
+                    all_next.push((new_burrow, current_score + score));
+                }
+            }
+        }
+
+        // then all from the sideways
+
+        for sideway in vec![A, B, C, D] {
+            if self.sideway_contains_wrong_amphipod(&sideway) {
+                // move it out into all possible positions (all that don't give an error are possible)
+                for position in 0..=10 {
+                    let mut new_burrow = self.clone();
+                    let result = new_burrow.move_away_from_sideway(&sideway, position);
+                    if let Ok(score) = result {
+                        all_next.push((new_burrow, current_score + score));
+                    }
+                }
+            }
+
+        }
+
+        all_next
+    }
+
+    fn sideway_contains_wrong_amphipod(&self, amphipod: &Amphipod) -> bool {
+        let sideway = self.get_sideway(amphipod);
+
+        (sideway[0].is_some() && sideway[0].unwrap() != *amphipod) ||
+            (sideway[1].is_some() && sideway[1].unwrap() != *amphipod)
     }
 }
 
@@ -313,7 +364,40 @@ mod tests {
     }
 }
 
-fn part1() {}
+fn part1() {
+    let mut burrows_yet_to_try = vec![(Burrow::init(), 0)];
+    let mut burrows_already_tried = HashMap::new();
+    let mut min_score_found_so_far = None;
+
+    while !burrows_yet_to_try.is_empty() {
+        println!("len = {}", burrows_yet_to_try.len());
+
+        // TODO: Take the one with minimun score instead of the first...
+        let (this_burrow, score) = burrows_yet_to_try.remove(0);
+
+        if min_score_found_so_far.map(|min_score| min_score <= score).unwrap_or(false) {
+            continue;
+        }
+
+        if burrows_already_tried.contains_key(&this_burrow) &&
+            burrows_already_tried.get(&this_burrow).unwrap() <= &score {
+            continue;
+        }
+
+        if this_burrow.is_done() {
+            if min_score_found_so_far == None ||  score < min_score_found_so_far.unwrap() {
+                min_score_found_so_far = Some(score);
+            }
+            continue;
+        }
+
+        burrows_yet_to_try.extend(this_burrow.find_all_next(score));
+
+        burrows_already_tried.insert(this_burrow, score);
+    }
+
+    println!("Min Score: {:?}", min_score_found_so_far);
+}
 
 
 fn main() {
