@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashMap, HashSet};
 use std::fmt::{Display, Error, Formatter};
 use std::ptr::write;
 use std::str::FromStr;
@@ -24,7 +25,7 @@ impl Amphipod {
     }
 }
 
-#[derive(Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 struct Burrow {
     hallway: [Option<Amphipod>; 11],
     sideway_a: [Option<Amphipod>; 2],
@@ -206,7 +207,7 @@ impl Burrow {
             self.get_sideway(&D) == &[Some(D), Some(D)]
     }
 
-    fn find_all_next(&self, current_score: u32) -> Vec<(Burrow, u32)> {
+    fn find_all_next(&self, current_score: u32) -> Vec<GameStateWithScore> {
         let mut all_next = Vec::new();
 
         // first all from the hallway
@@ -217,7 +218,7 @@ impl Burrow {
                 let mut new_burrow = self.clone();
                 let result = new_burrow.move_into_sideway(i);
                 if let Ok(score) = result {
-                    all_next.push((new_burrow, current_score + score));
+                    all_next.push(GameStateWithScore::new(new_burrow, current_score + score));
                 }
             }
         }
@@ -231,7 +232,7 @@ impl Burrow {
                     let mut new_burrow = self.clone();
                     let result = new_burrow.move_away_from_sideway(&sideway, position);
                     if let Ok(score) = result {
-                        all_next.push((new_burrow, current_score + score));
+                        all_next.push(GameStateWithScore::new(new_burrow, current_score + score));
                     }
                 }
             }
@@ -362,18 +363,73 @@ mod tests {
 
         println!("{}", total_energy);
     }
+
+    #[test]
+    fn test_binary_heap_with_game_state_with_score() {
+        let mut heap = BinaryHeap::new();
+
+        let burrow = Burrow::init();
+
+        heap.push(GameStateWithScore::new(burrow, 3000));
+        heap.push(GameStateWithScore::new(burrow, 2000));
+        heap.push(GameStateWithScore::new(burrow, 2000));
+        heap.push(GameStateWithScore::new(burrow, 10));
+
+        let option = heap.pop();
+        println!("{:?}", option);
+    }
 }
 
+#[derive(Debug)]
+struct GameStateWithScore {
+    burrow: Burrow,
+    score: u32
+}
+
+impl <'a> GameStateWithScore {
+    fn new(burrow: Burrow, score: u32) -> Self {
+        GameStateWithScore {
+            burrow, score
+        }
+    }
+}
+
+impl Eq for GameStateWithScore {}
+
+impl PartialEq<Self> for GameStateWithScore {
+    fn eq(&self, other: &Self) -> bool {
+        self.score.eq(&other.score)
+    }
+}
+
+impl PartialOrd<Self> for GameStateWithScore {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        // self.score.partial_cmp(&other.score)
+        other.score.partial_cmp(&self.score) // we use it like this for min-heap
+    }
+}
+
+impl Ord for GameStateWithScore {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // self.score.cmp(&other.score)
+        other.score.cmp(&self.score) // we use it like this for min-heap
+    }
+}
+
+
 fn part1() {
-    let mut burrows_yet_to_try = vec![(Burrow::init(), 0)];
+    // let mut burrows_yet_to_try = vec![(Burrow::init(), 0)];
+    let mut burrows_yet_to_try = BinaryHeap::new();
+    burrows_yet_to_try.push(GameStateWithScore::new(Burrow::init(), 0));
     let mut burrows_already_tried = HashMap::new();
     let mut min_score_found_so_far = None;
 
     while !burrows_yet_to_try.is_empty() {
         println!("len = {}", burrows_yet_to_try.len());
 
-        // TODO: Take the one with minimun score instead of the first...
-        let (this_burrow, score) = burrows_yet_to_try.remove(0);
+        let gsws = burrows_yet_to_try.pop().unwrap();
+        let this_burrow = gsws.burrow;
+        let score = gsws.score;
 
         if min_score_found_so_far.map(|min_score| min_score <= score).unwrap_or(false) {
             continue;
