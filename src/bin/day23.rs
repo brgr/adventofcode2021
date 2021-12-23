@@ -1,4 +1,3 @@
-use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Error, Formatter};
 use std::ptr::write;
 use std::str::FromStr;
@@ -9,13 +8,7 @@ use parse_display::Display;
 
 use crate::Amphipod::{A, B, C, D};
 
-const E1: &str = "";
-const E2: &str = "";
-const E3: &str = "";
-const E4: &str = "";
-const INPUT: &str = "";
-
-#[derive(Debug, Copy, Clone, Display)]
+#[derive(Debug, Copy, Clone, Display, Eq, PartialEq)]
 enum Amphipod { A, B, C, D }
 
 impl Amphipod {
@@ -51,6 +44,39 @@ impl Burrow {
         Burrow { hallway, sideway_a, sideway_b, sideway_c, sideway_d }
     }
 
+    /// Moves an amphipod from the hallway into its destined sideway.
+    /// Returns an error if:
+    ///  - Some other amphipod is in the way
+    ///  - The sideway is not yet ready for insert - a sideway is ready for insert if it's empty
+    ///    or it only contains the other same amphipod
+    fn move_into_sideway(&mut self, position: usize) -> Result<u32, Error> {
+        let current_amphipod = self.hallway[position]
+            .unwrap_or_else(|| panic!());
+        self.hallway[position] = None;
+
+        let sideway_position = Burrow::get_sideway_position(&current_amphipod);
+        if self.is_no_one_in_the_way(position, sideway_position) {
+            if self.is_sideway_ready_for_insert(&current_amphipod) {
+                let sideway_energy = self.insert_amphipod_in_sideway(&current_amphipod, current_amphipod);
+                let total_energy = sideway_energy + (sideway_position as i8 - position as i8).abs() as u32;
+                Ok(current_amphipod.get_energy(total_energy))
+            } else {
+                Err(Error)
+            }
+        } else {
+            Err(Error)
+        }
+    }
+
+    /// Checks if the sideway for the given amphipod is ready for the given amphipod to be inserted.
+    /// This is the case if either the sideway is empty, or it contains only the other same
+    /// amphipod.
+    fn is_sideway_ready_for_insert(&self, amphipod: &Amphipod) -> bool {
+        let sideway = self.get_sideway(amphipod);
+
+        sideway[0].is_none() && (sideway[1].is_none() || sideway[1].unwrap() == *amphipod)
+    }
+
     /// Moves an amphipod out of a sideway and into the given position.
     /// Returns an error if:
     ///  - the position is a sideway position or greater than 10
@@ -78,15 +104,22 @@ impl Burrow {
         }
     }
 
-    fn insert_amphipod_in_sideway(&mut self, sideway: &Amphipod, amphipod: Amphipod) {
+    /// Inserts the given amphipod into the given sideway.
+    /// This panics if one of the following happens:
+    ///  - Both entries in the sideway are already full
+    ///  - The first entry (`sideway[0]`) is already full, but the second isn't - which is actually
+    ///    an invalid state!
+    fn insert_amphipod_in_sideway(&mut self, sideway: &Amphipod, amphipod: Amphipod) -> u32 {
         let sideway = self.get_sideway_mut(sideway);
 
-        if sideway[0].is_some() && sideway[1].is_some() { panic!(); }
-
-        if sideway[1].is_none() {
+        if sideway[1].is_none() && sideway[0].is_none() {
             sideway[1] = Some(amphipod);
-        } else {
+            2
+        } else if sideway[0].is_none() {
             sideway[0] = Some(amphipod);
+            1
+        } else {
+            panic!();
         }
     }
 
@@ -241,12 +274,47 @@ mod tests {
         println!("{}", burrow);
         assert_eq!(Err(Error), result4);
     }
+
+    #[test]
+    fn test_example_manually() {
+        // Test the given example manually
+        let mut burrow = Burrow::init();
+        println!("{}", burrow);
+
+        let mut total_energy = 0;
+
+        total_energy += burrow.move_away_from_sideway(&C, 3).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
+        total_energy += burrow.move_into_sideway(5).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
+        total_energy += burrow.move_into_sideway(3).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_away_from_sideway(&A, 3).unwrap();
+        total_energy += burrow.move_into_sideway(3).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_away_from_sideway(&D, 7).unwrap();
+        total_energy += burrow.move_away_from_sideway(&D, 9).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_into_sideway(5).unwrap();
+        total_energy += burrow.move_into_sideway(7).unwrap();
+        println!("{}", burrow);
+
+        total_energy += burrow.move_into_sideway(9).unwrap();
+        println!("{}", burrow);
+
+        println!("{}", total_energy);
+    }
 }
 
 fn part1() {}
 
-
-fn part2() {}
 
 fn main() {
     part1();
