@@ -28,29 +28,30 @@ impl Amphipod {
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 struct Burrow {
     hallway: [Option<Amphipod>; 11],
-    sideway_a: [Option<Amphipod>; 2],
-    sideway_b: [Option<Amphipod>; 2],
-    sideway_c: [Option<Amphipod>; 2],
-    sideway_d: [Option<Amphipod>; 2],
+    sideway_a: [Option<Amphipod>; 4],
+    sideway_b: [Option<Amphipod>; 4],
+    sideway_c: [Option<Amphipod>; 4],
+    sideway_d: [Option<Amphipod>; 4],
 }
 
 /// Represents a burrow.
 /// As for the sideways, `sideway[0]` is always the upper/outer position, and `sideway[1]` is
-/// always lower/inner position.
+/// always lower/inner position. With part 2 now, `sideway[2]` and `sideway[3]` will be further
+/// into the sideway/cave, i.e. `sideway[3]` is the last and lowest element in the cave.
 impl Burrow {
     fn init() -> Self {
         let hallway = [None, None, None, None, None, None, None, None, None, None, None];
         // My input:
-        let sideway_a = [Some(C), Some(C)];
-        let sideway_b = [Some(A), Some(A)];
-        let sideway_c = [Some(B), Some(D)];
-        let sideway_d = [Some(D), Some(B)];
+        // let sideway_a = [Some(C), Some(D), Some(D),  Some(C)];
+        // let sideway_b = [Some(A), Some(C), Some(B),  Some(A)];
+        // let sideway_c = [Some(B), Some(B), Some(A),  Some(D)];
+        // let sideway_d = [Some(D), Some(A), Some(C),  Some(B)];
 
         // Example input:
-        // let sideway_a = [Some(B), Some(A)];
-        // let sideway_b = [Some(C), Some(D)];
-        // let sideway_c = [Some(B), Some(C)];
-        // let sideway_d = [Some(D), Some(A)];
+        let sideway_a = [Some(B), Some(D), Some(D), Some(A)];
+        let sideway_b = [Some(C), Some(C), Some(B), Some(D)];
+        let sideway_c = [Some(B), Some(B), Some(A), Some(C)];
+        let sideway_d = [Some(D), Some(A), Some(C), Some(A)];
         Burrow { hallway, sideway_a, sideway_b, sideway_c, sideway_d }
     }
 
@@ -84,7 +85,15 @@ impl Burrow {
     fn is_sideway_ready_for_insert(&self, amphipod: &Amphipod) -> bool {
         let sideway = self.get_sideway(amphipod);
 
-        sideway[0].is_none() && (sideway[1].is_none() || sideway[1].unwrap() == *amphipod)
+        // sideway[0].is_none() && (sideway[1].is_none() || sideway[1].unwrap() == *amphipod)
+
+        for i in 0..4 {
+            if sideway[i].is_some() && sideway[i].unwrap() != *amphipod {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Moves an amphipod out of a sideway and into the given position.
@@ -122,15 +131,24 @@ impl Burrow {
     fn insert_amphipod_in_sideway(&mut self, sideway: &Amphipod, amphipod: Amphipod) -> u32 {
         let sideway = self.get_sideway_mut(sideway);
 
-        if sideway[1].is_none() && sideway[0].is_none() {
-            sideway[1] = Some(amphipod);
-            2
-        } else if sideway[0].is_none() {
-            sideway[0] = Some(amphipod);
-            1
-        } else {
-            panic!();
+        for i in 0..4 {
+            if sideway[3 - i].is_none() {
+                sideway[3 -i] = Some(amphipod);
+                return 4 - i as u32;
+            }
         }
+
+        panic!()
+
+        // if sideway[1].is_none() && sideway[0].is_none() {
+        //     sideway[1] = Some(amphipod);
+        //     2
+        // } else if sideway[0].is_none() {
+        //     sideway[0] = Some(amphipod);
+        //     1
+        // } else {
+        //     panic!();
+        // }
     }
 
     /// Checks if between start and goal no amphipod is in the way and returns true if that
@@ -153,20 +171,19 @@ impl Burrow {
     /// If instead one was removed, it is returned together with the energy used to move it out
     /// of the sideway, i.e. 1 if it was the upper amphipod, and 2 if it was the lower one.
     fn remove_next_up_in_sideway(&mut self, sideway: &Amphipod) -> Option<(Amphipod, u32)> {
-        let sideway: &mut [Option<Amphipod>; 2] = self.get_sideway_mut(sideway);
+        let sideway: &mut [Option<Amphipod>; 4] = self.get_sideway_mut(sideway);
 
-        if let Some(amphipod) = sideway[0] {
-            sideway[0] = None;
-            Some((amphipod, 1))
-        } else if let Some(amphipod) = sideway[1] {
-            sideway[1] = None;
-            Some((amphipod, 2))
-        } else {
-            None
+        for i in 0..4 {
+            if let Some(amphipod) = sideway[i] {
+                sideway[i] = None;
+                return Some((amphipod, i as u32 + 1));
+            }
         }
+
+        None
     }
 
-    fn get_sideway_mut(&mut self, sideway: &Amphipod) -> &mut [Option<Amphipod>; 2] {
+    fn get_sideway_mut(&mut self, sideway: &Amphipod) -> &mut [Option<Amphipod>; 4] {
         match sideway {
             A => &mut self.sideway_a,
             B => &mut self.sideway_b,
@@ -175,7 +192,7 @@ impl Burrow {
         }
     }
 
-    fn get_sideway(&self, sideway: &Amphipod) -> &[Option<Amphipod>; 2] {
+    fn get_sideway(&self, sideway: &Amphipod) -> &[Option<Amphipod>; 4] {
         match sideway {
             A => &self.sideway_a,
             B => &self.sideway_b,
@@ -207,13 +224,13 @@ impl Burrow {
     }
 
     fn is_done(&self) -> bool {
-        self.get_sideway(&A) == &[Some(A), Some(A)] &&
-            self.get_sideway(&B) == &[Some(B), Some(B)] &&
-            self.get_sideway(&C) == &[Some(C), Some(C)] &&
-            self.get_sideway(&D) == &[Some(D), Some(D)]
+        self.get_sideway(&A) == &[Some(A), Some(A), Some(A), Some(A)] &&
+            self.get_sideway(&B) == &[Some(B), Some(B), Some(B), Some(B)] &&
+            self.get_sideway(&C) == &[Some(C), Some(C), Some(C), Some(C)] &&
+            self.get_sideway(&D) == &[Some(D), Some(D), Some(D), Some(D)]
     }
 
-    fn find_all_next(&self, current_score: u32) -> Vec<GameStateWithScore> {
+    fn find_all_next(&self, current_score: u32) -> Vec<(Burrow, u32)> {
         let mut all_next = Vec::new();
 
         // first all from the hallway
@@ -224,7 +241,7 @@ impl Burrow {
                 let mut new_burrow = self.clone();
                 let result = new_burrow.move_into_sideway(i);
                 if let Ok(score) = result {
-                    all_next.push(GameStateWithScore::new(new_burrow, current_score + score));
+                    all_next.push((new_burrow, current_score + score));
                 }
             }
         }
@@ -238,11 +255,10 @@ impl Burrow {
                     let mut new_burrow = self.clone();
                     let result = new_burrow.move_away_from_sideway(&sideway, position);
                     if let Ok(score) = result {
-                        all_next.push(GameStateWithScore::new(new_burrow, current_score + score));
+                        all_next.push((new_burrow, current_score + score));
                     }
                 }
             }
-
         }
 
         all_next
@@ -251,8 +267,18 @@ impl Burrow {
     fn sideway_contains_wrong_amphipod(&self, amphipod: &Amphipod) -> bool {
         let sideway = self.get_sideway(amphipod);
 
-        (sideway[0].is_some() && sideway[0].unwrap() != *amphipod) ||
-            (sideway[1].is_some() && sideway[1].unwrap() != *amphipod)
+        for i in 0..4 {
+            if sideway[i].is_some() {
+                if sideway[i].unwrap() != *amphipod {
+                    return true;
+                }
+            }
+        }
+
+        false
+
+        // (sideway[0].is_some() && sideway[0].unwrap() != *amphipod) ||
+        //     (sideway[1].is_some() && sideway[1].unwrap() != *amphipod)
     }
 }
 
@@ -277,6 +303,13 @@ impl Display for Burrow {
         write!(f, "  #{}#{}#{}#{}#  \n", self.get_sideway_entry_as_str(&A, 1),
             self.get_sideway_entry_as_str(&B, 1), self.get_sideway_entry_as_str(&C, 1),
             self.get_sideway_entry_as_str(&D, 1))?;
+        write!(f, "  #{}#{}#{}#{}#  \n", self.get_sideway_entry_as_str(&A, 2),
+               self.get_sideway_entry_as_str(&B, 2), self.get_sideway_entry_as_str(&C, 2),
+               self.get_sideway_entry_as_str(&D, 2))?;
+        write!(f, "  #{}#{}#{}#{}#  \n", self.get_sideway_entry_as_str(&A, 3),
+               self.get_sideway_entry_as_str(&B, 3), self.get_sideway_entry_as_str(&C, 3),
+               self.get_sideway_entry_as_str(&D, 3))?;
+
         write!(f, "  #########  \n")?;
 
 
@@ -333,70 +366,148 @@ mod tests {
         assert_eq!(Err(Error), result4);
     }
 
+    // #[test]
+    // fn test_example_part1_manually() {
+    //     // Test the given example manually
+    //     let mut burrow = Burrow::init();
+    //     println!("{}", burrow);
+    //
+    //     let mut total_energy = 0;
+    //
+    //     total_energy += burrow.move_away_from_sideway(&C, 3).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
+    //     total_energy += burrow.move_into_sideway(5).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
+    //     total_energy += burrow.move_into_sideway(3).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_away_from_sideway(&A, 3).unwrap();
+    //     total_energy += burrow.move_into_sideway(3).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_away_from_sideway(&D, 7).unwrap();
+    //     total_energy += burrow.move_away_from_sideway(&D, 9).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_into_sideway(5).unwrap();
+    //     total_energy += burrow.move_into_sideway(7).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     total_energy += burrow.move_into_sideway(9).unwrap();
+    //     println!("{}", burrow);
+    //
+    //     println!("{}", total_energy);
+    // }
+
     #[test]
-    fn test_example_manually() {
-        // Test the given example manually
+    fn test_example_part2_manually() {
         let mut burrow = Burrow::init();
+        let mut score = 0;
+
         println!("{}", burrow);
 
-        let mut total_energy = 0;
-
-        total_energy += burrow.move_away_from_sideway(&C, 3).unwrap();
+        score += burrow.move_away_from_sideway(&D, 10).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&D, 0).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&C, 9).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&C, 7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&C, 1).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&B, 5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&B, 5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&B, 5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&B, 3).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(9).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&D, 7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&D, 9).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(3).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&A, 3).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(3).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&A, 7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_away_from_sideway(&A, 5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(7).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(5).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(1).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(0).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(9).unwrap();
+        println!("{}", burrow);
+        score += burrow.move_into_sideway(10).unwrap();
         println!("{}", burrow);
 
-        total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
-        total_energy += burrow.move_into_sideway(5).unwrap();
-        println!("{}", burrow);
+        println!("{}", score);
+        println!("Is done: {}", burrow.is_done());
 
-        total_energy += burrow.move_away_from_sideway(&B, 5).unwrap();
-        total_energy += burrow.move_into_sideway(3).unwrap();
-        println!("{}", burrow);
 
-        total_energy += burrow.move_away_from_sideway(&A, 3).unwrap();
-        total_energy += burrow.move_into_sideway(3).unwrap();
-        println!("{}", burrow);
 
-        total_energy += burrow.move_away_from_sideway(&D, 7).unwrap();
-        total_energy += burrow.move_away_from_sideway(&D, 9).unwrap();
-        println!("{}", burrow);
-
-        total_energy += burrow.move_into_sideway(5).unwrap();
-        total_energy += burrow.move_into_sideway(7).unwrap();
-        println!("{}", burrow);
-
-        total_energy += burrow.move_into_sideway(9).unwrap();
-        println!("{}", burrow);
-
-        println!("{}", total_energy);
     }
 
-    #[test]
-    fn test_binary_heap_with_game_state_with_score() {
-        let mut heap = BinaryHeap::new();
-
-        let burrow = Burrow::init();
-
-        heap.push(GameStateWithScore::new(burrow, 3000));
-        heap.push(GameStateWithScore::new(burrow, 2000));
-        heap.push(GameStateWithScore::new(burrow, 2000));
-        heap.push(GameStateWithScore::new(burrow, 10));
-
-        let option = heap.pop();
-        println!("{:?}", option);
-    }
+    // #[test]
+    // fn test_binary_heap_with_game_state_with_score() {
+    //     let mut heap = BinaryHeap::new();
+    //
+    //     let burrow = Burrow::init();
+    //
+    //     heap.push(GameStateWithScore::new(burrow, 3000));
+    //     heap.push(GameStateWithScore::new(burrow, 2000));
+    //     heap.push(GameStateWithScore::new(burrow, 2000));
+    //     heap.push(GameStateWithScore::new(burrow, 10));
+    //
+    //     let option = heap.pop();
+    //     println!("{:?}", option);
+    // }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct GameStateWithScore {
-    burrow: Burrow,
+    burrow: Vec<Burrow>,
     score: u32
 }
 
 impl <'a> GameStateWithScore {
-    fn new(burrow: Burrow, score: u32) -> Self {
+    fn new(burrow: Vec<Burrow>, score: u32) -> Self {
         GameStateWithScore {
             burrow, score
         }
+    }
+
+    fn update_burrow_and_score(&self, next_burrow: Burrow, new_score: u32) -> Self {
+        let mut gsws = self.clone();
+        gsws.burrow.push(next_burrow);
+        gsws.score = new_score;
+        gsws
     }
 }
 
@@ -426,15 +537,17 @@ impl Ord for GameStateWithScore {
 fn part1() {
     // let mut burrows_yet_to_try = vec![(Burrow::init(), 0)];
     let mut burrows_yet_to_try = BinaryHeap::new();
-    burrows_yet_to_try.push(GameStateWithScore::new(Burrow::init(), 0));
+    burrows_yet_to_try.push(GameStateWithScore::new(vec![Burrow::init()], 0));
     let mut burrows_already_tried = HashMap::new();
+
+    let mut burrow_at_min_score = None;
     let mut min_score_found_so_far = None;
 
     while !burrows_yet_to_try.is_empty() {
-        println!("len = {}", burrows_yet_to_try.len());
+        println!("{}", burrows_yet_to_try.len());
 
         let gsws = burrows_yet_to_try.pop().unwrap();
-        let this_burrow = gsws.burrow;
+        let this_burrow = *gsws.burrow.last().unwrap();
         let score = gsws.score;
 
         if min_score_found_so_far.map(|min_score| min_score <= score).unwrap_or(false) {
@@ -447,21 +560,31 @@ fn part1() {
         }
 
         if this_burrow.is_done() {
-            if min_score_found_so_far == None ||  score < min_score_found_so_far.unwrap() {
+            if min_score_found_so_far == None || score < min_score_found_so_far.unwrap() {
+                burrow_at_min_score = Some(gsws.burrow.clone());
                 min_score_found_so_far = Some(score);
             }
             continue;
         }
 
-        burrows_yet_to_try.extend(this_burrow.find_all_next(score));
+        burrows_yet_to_try.extend(this_burrow.find_all_next(score).iter()
+            .map(|burrow_and_score| gsws.update_burrow_and_score(burrow_and_score.0, burrow_and_score.1))
+        );
 
         burrows_already_tried.insert(this_burrow, score);
     }
 
     println!("Min Score: {:?}", min_score_found_so_far);
+    // println!("{}", burrow_at_min_score.unwrap());
+
+    for x in burrow_at_min_score.unwrap() {
+        println!("burrow:\n{}\n", x);
+    }
 }
 
 
 fn main() {
+    // TODO: This worked correctly for the example burrow! It took around 14min.
+    //   I now need to do it for the actual input still...
     part1();
 }
