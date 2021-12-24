@@ -42,16 +42,16 @@ impl Burrow {
     fn init() -> Self {
         let hallway = [None, None, None, None, None, None, None, None, None, None, None];
         // My input:
-        // let sideway_a = [Some(C), Some(D), Some(D),  Some(C)];
-        // let sideway_b = [Some(A), Some(C), Some(B),  Some(A)];
-        // let sideway_c = [Some(B), Some(B), Some(A),  Some(D)];
-        // let sideway_d = [Some(D), Some(A), Some(C),  Some(B)];
+        let sideway_a = [Some(C), Some(D), Some(D),  Some(C)];
+        let sideway_b = [Some(A), Some(C), Some(B),  Some(A)];
+        let sideway_c = [Some(B), Some(B), Some(A),  Some(D)];
+        let sideway_d = [Some(D), Some(A), Some(C),  Some(B)];
 
         // Example input:
-        let sideway_a = [Some(B), Some(D), Some(D), Some(A)];
-        let sideway_b = [Some(C), Some(C), Some(B), Some(D)];
-        let sideway_c = [Some(B), Some(B), Some(A), Some(C)];
-        let sideway_d = [Some(D), Some(A), Some(C), Some(A)];
+        // let sideway_a = [Some(B), Some(D), Some(D), Some(A)];
+        // let sideway_b = [Some(C), Some(C), Some(B), Some(D)];
+        // let sideway_c = [Some(B), Some(B), Some(A), Some(C)];
+        // let sideway_d = [Some(D), Some(A), Some(C), Some(A)];
         Burrow { hallway, sideway_a, sideway_b, sideway_c, sideway_d }
     }
 
@@ -492,22 +492,15 @@ mod tests {
 
 #[derive(Debug, Clone)]
 struct GameStateWithScore {
-    burrow: Vec<Burrow>,
+    burrow: Burrow,
     score: u32
 }
 
 impl <'a> GameStateWithScore {
-    fn new(burrow: Vec<Burrow>, score: u32) -> Self {
+    fn new(burrow: Burrow, score: u32) -> Self {
         GameStateWithScore {
             burrow, score
         }
-    }
-
-    fn update_burrow_and_score(&self, next_burrow: Burrow, new_score: u32) -> Self {
-        let mut gsws = self.clone();
-        gsws.burrow.push(next_burrow);
-        gsws.score = new_score;
-        gsws
     }
 }
 
@@ -537,7 +530,7 @@ impl Ord for GameStateWithScore {
 fn part1() {
     // let mut burrows_yet_to_try = vec![(Burrow::init(), 0)];
     let mut burrows_yet_to_try = BinaryHeap::new();
-    burrows_yet_to_try.push(GameStateWithScore::new(vec![Burrow::init()], 0));
+    burrows_yet_to_try.push(GameStateWithScore::new(Burrow::init(), 0));
     let mut burrows_already_tried = HashMap::new();
 
     let mut burrow_at_min_score = None;
@@ -547,7 +540,7 @@ fn part1() {
         println!("{}", burrows_yet_to_try.len());
 
         let gsws = burrows_yet_to_try.pop().unwrap();
-        let this_burrow = *gsws.burrow.last().unwrap();
+        let this_burrow = gsws.burrow;
         let score = gsws.score;
 
         if min_score_found_so_far.map(|min_score| min_score <= score).unwrap_or(false) {
@@ -568,8 +561,7 @@ fn part1() {
         }
 
         burrows_yet_to_try.extend(this_burrow.find_all_next(score).iter()
-            .map(|burrow_and_score| gsws.update_burrow_and_score(burrow_and_score.0, burrow_and_score.1))
-        );
+            .map(|bs| GameStateWithScore::new(bs.0, bs.1)));
 
         burrows_already_tried.insert(this_burrow, score);
     }
@@ -577,14 +569,15 @@ fn part1() {
     println!("Min Score: {:?}", min_score_found_so_far);
     // println!("{}", burrow_at_min_score.unwrap());
 
-    for x in burrow_at_min_score.unwrap() {
-        println!("burrow:\n{}\n", x);
-    }
+    // for x in burrow_at_min_score.unwrap() {
+    //     println!("burrow:\n{}\n", x);
+    // }
+    println!("{}", burrow_at_min_score.unwrap());
 }
 
 
 fn main() {
-    // TODO: This worked correctly for the example burrow! It took around 14min.
-    //   I now need to do it for the actual input still...
+    // TODO: I got a SIGKILL during execution for the actual input!?
+    //  I should try to remove keeping *all* burrows up to the last, and just save the last again
     part1();
 }
