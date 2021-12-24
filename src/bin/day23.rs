@@ -40,11 +40,17 @@ struct Burrow {
 impl Burrow {
     fn init() -> Self {
         let hallway = [None, None, None, None, None, None, None, None, None, None, None];
-        // initialize here according to input!
-        let sideway_a = [Some(B), Some(A)];
-        let sideway_b = [Some(C), Some(D)];
-        let sideway_c = [Some(B), Some(C)];
-        let sideway_d = [Some(D), Some(A)];
+        // My input:
+        let sideway_a = [Some(C), Some(C)];
+        let sideway_b = [Some(A), Some(A)];
+        let sideway_c = [Some(B), Some(D)];
+        let sideway_d = [Some(D), Some(B)];
+
+        // Example input:
+        // let sideway_a = [Some(B), Some(A)];
+        // let sideway_b = [Some(C), Some(D)];
+        // let sideway_c = [Some(B), Some(C)];
+        // let sideway_d = [Some(D), Some(A)];
         Burrow { hallway, sideway_a, sideway_b, sideway_c, sideway_d }
     }
 
@@ -135,7 +141,7 @@ impl Burrow {
         let from = if start < goal { start + 1 } else { goal + 1 };
         let to = if start < goal { goal - 1 } else { start - 1 };
 
-        for i in from..to {
+        for i in from..=to {
             if self.hallway[i].is_some() { return false; }
         }
 
